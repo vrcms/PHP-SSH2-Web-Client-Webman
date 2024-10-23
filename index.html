@@ -1,0 +1,160 @@
+
+<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="referer" content="never" />
+      <meta name="renderer" content="webkit">
+
+      <link rel="stylesheet" href="static/layer/layer.css" />
+      <link rel="stylesheet" href="static/css/xterm.css" />
+      <script src="static/jquery-2.2.4.min.js"></script>
+      <script src="static/public.js"></script>
+      <script src="static/layer/layer.js"></script>
+
+      <title>Web Ssh Client / 客户端</title>
+
+
+      <style>
+     /*
+     必须的css start
+      */
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+      body {font-family: Arial, Helvetica, sans-serif;}
+
+      .term-box{
+        padding: 10px 10px;
+      }
+
+        .xterm .xterm-viewport::-webkit-scrollbar {
+          width: 8px;
+          height: 5px;
+          border-radius: 4px;
+        }
+
+        .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+          border-radius: 0;
+          box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+          background: #666;
+          border-radius: 4px;
+          transition: all 1s;
+        }
+
+        .xterm .xterm-viewport:hover::-webkit-scrollbar-thumb {
+          background: #aaa;
+        }
+
+        .xterm .xterm-viewport::-webkit-scrollbar-track {
+          box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+          border-radius: 0;
+          background: #222;
+          border-radius: 4px;
+          transition: all 1s;
+        }
+
+        .xterm .xterm-viewport:hover::-webkit-scrollbar-track {
+          background-color: #444;
+        }
+
+     /*
+ 必须的css end
+  */
+
+
+
+
+
+
+      input[type=text], input[type=password], input[type=number],input[type=file] {
+          width: 100%;
+          padding: 12px 20px;
+          margin: 8px 0;
+          display: inline-block;
+          border: 1px solid #ccc;
+          box-sizing: border-box;
+      }
+
+      button {
+          background-color: #4CAF50;
+          color: white;
+          padding: 14px 20px;
+          margin: 8px 0;
+          border: none;
+          cursor: pointer;
+          width: 100%;
+      }
+
+      button:hover {
+          opacity: 0.8;
+      }
+
+      .serverbox {
+          padding: 16px;
+          border: 3px solid #f1f1f1;
+          width: 25%;
+          position: absolute;
+          top: 15%;
+          left: 37%;
+      }
+      </style>
+    </head>
+    <body>
+      <div id="serverbox" class="serverbox">
+        <label for="psw"><b>IP/域名</b></label><br>
+        <input type="text" id="server" name="server" title="server" placeholder="ip或域名" /><br>
+        <label for="psw"><b>端口/port</b></label><br>
+        <input type="number" min="1" id="port" name="port" title="port" placeholder="端口" /><br>
+        <label for="psw"><b>用户名/user</b></label><br>
+        <input type="text" id="user" name="user" title="user" placeholder="用户名" /><br>
+        <label for="psw"><b>密码/password</b></label><br>
+        <input type="password" id="password" name="password" title="password" placeholder="密码" /><br>
+<!--        <label for="key"><b>Key</b></label><br>-->
+<!--        <input type="file" id="key" name="key" title="key" placeholder="key" /><br>-->
+        <button type="button" onclick="connectServer()">Connect / 连接</button><br>
+
+      </div>
+      <div id="terminal" style="width:100%; height:90vh;visibility:hidden"></div>
+      <script>
+
+
+
+
+        function connectServer() {
+
+          var server = document.getElementById("server").value;
+          var port = document.getElementById("port").value;
+          var user = document.getElementById("user").value;
+          var password = document.getElementById("password").value;
+          var key = false;
+
+          if (server == "" || port == "" || user == "" || password == "") {
+            alert("Please fill all fields");
+            return;
+          }
+
+          //ssh的登录信息
+          Term.ssh_info = {
+            "server":server,
+            "port":port,
+            "user":user,
+            "password":password,
+            "key":key
+          };
+
+
+
+          web_shell();
+          return;
+        }
+
+
+
+      </script>
+    </body>
+  </html>
