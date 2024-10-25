@@ -22,24 +22,23 @@ class Websocket
 {
 
 
-    private $cols = 80;
-    private $rows = 24;
+    const COLS = 80;
+    const ROWS = 24;
+
+    private $cols = [];
+    private $rows = [];
 
 
     /**
      * @var false|resource
      */
-    private $connection;
-    /**
-     * @var resource
-     */
-    private $shell;
-    /**
-     * @var true
-     */
-    private bool $conectado = false;
+    private $connection = [];
 
-    private  $timer_id;
+    private $shell=[];
+
+    private $conectado = [];
+
+    private  $timer_id = [];
 
 
     public function onConnect(TcpConnection $connection){
@@ -48,7 +47,19 @@ class Websocket
     }
 
     public function onWebSocketConnect(TcpConnection $connection, $http_buffer){
-        echo "客户端连接 onWebSocketConnect $http_buffer\n";
+        //$http_buffer中有连接信息
+        echo "客户端连接 onWebSocketConnect\n";
+        echo "connection->id :". $connection->id. "\n";
+
+        $this->shell[$connection->id] = null;
+        $this->conectado[$connection->id] = false;
+        if(isset($this->timer_id[$connection->id])){
+            Timer::del($this->timer_id[$connection->id]);
+            $this->timer_id[$connection->id] = null;
+        }
+        $this->connection[$connection->id] = null;
+        $this->cols[$connection->id] = self::COLS;
+        $this->rows[$connection->id] = self::ROWS;
 
 
 
@@ -58,22 +69,26 @@ class Websocket
     public function onMessage(TcpConnection $connection, $data)
     {
 
-        if(!isset($this->timer_id)){
-            // 开启定时器，定时发送数据-就是不断发送shell返回的数据
-            $this->timer_id = Timer::add(0.1, function() use($connection){
-
-                if(is_resource($this->shell) && $this->conectado){
-                    //echo "循环发送数据到客户端\n";
-                    while($line = fgets($this->shell)) {
-                        $connection->send(mb_convert_encoding($line, "UTF-8"));
-                    }
-                }
-
-
-            });
+        //先删除后添加定时器
+        if(isset($this->timer_id[$connection->id])){
+            Timer::del($this->timer_id[$connection->id]);
         }
 
-        //echo "onMessage [$data] \n";
+        // 开启定时器，定时发送数据-就是不断发送shell返回的数据
+        $this->timer_id[$connection->id] = Timer::add(0.1, function() use($connection){
+
+            if(is_resource($this->shell[$connection->id]) && isset($this->conectado[$connection->id]) && $this->conectado[$connection->id]){
+                //echo "循环发送数据到客户端\n";
+                while($line = fgets($this->shell[$connection->id])) {
+                    $connection->send(mb_convert_encoding($line, "UTF-8"));
+                }
+            }
+
+
+        });
+
+
+        //echo $connection->id.".onMessage [$data] [$connection->id] \n";
 
 
         $arr_data = json_decode($data, true);
@@ -95,7 +110,7 @@ class Websocket
             if(isset($arr_data['server']) && isset($arr_data['port']) && isset($arr_data['user']) && isset($arr_data['password'])){
 
                 //关闭之前的连接
-                $this->close_resource();
+                $this->close_resource($connection);
 
 
                 $sendstring = mb_convert_encoding("Connecting to ".$arr_data['server']."....\r\n", "UTF-8");
@@ -105,7 +120,7 @@ class Websocket
 
                 //连接ssh服务器
                 try {
-                    $this->connection = ssh2_connect($arr_data['server'], $arr_data['port']);
+                    $this->connection[$connection->id] = ssh2_connect($arr_data['server'], $arr_data['port']);
 
                 } catch (ErrorException $exception) {
                     //连接失败
@@ -120,7 +135,7 @@ class Websocket
 
                 try {
                 $auth = ssh2_auth_password(
-                    $this->connection,
+                    $this->connection[$connection->id],
                     $arr_data['user'],
                     $arr_data['password']
                 );
@@ -134,9 +149,9 @@ class Websocket
 
                     $connection->send(mb_convert_encoding("认证成功.... \r\n", "UTF-8"));
                     //认证成功
-                    $this->shell = ssh2_shell($this->connection, 'xterm', null, $this->cols, $this->rows, SSH2_TERM_UNIT_CHARS);
+                    $this->shell[$connection->id] = ssh2_shell($this->connection[$connection->id], 'xterm', null, $this->cols[$connection->id], $this->rows[$connection->id], SSH2_TERM_UNIT_CHARS);
                     sleep(1);
-                    $this->conectado = true;
+                    $this->conectado[$connection->id] = true;
 
 
 
@@ -151,16 +166,16 @@ class Websocket
 
 
             if(isset($arr_data['resize'])){
-                $this->cols = $arr_data['cols'];
-                $this->rows = $arr_data['rows'];
+                $this->cols[$connection->id] = $arr_data['cols'];
+                $this->rows[$connection->id] = $arr_data['rows'];
 
                 echo "调整窗口大小\n";
                 //print_r($arr_data);
 
                 //调整窗口大小
                 //$connection->send(mb_convert_encoding($resize_data, "UTF-8"));
-                if($this->conectado && is_resource($this->shell)){
-                    $this->shell = ssh2_shell($this->connection, 'xterm', null, $this->cols, $this->rows, SSH2_TERM_UNIT_CHARS);
+                if($this->conectado[$connection->id] && is_resource($this->shell[$connection->id])){
+                    $this->shell[$connection->id] = ssh2_shell($this->connection[$connection->id], 'xterm', null, $this->cols[$connection->id], $this->rows[$connection->id], SSH2_TERM_UNIT_CHARS);
                 }
 
                 return;
@@ -171,10 +186,10 @@ class Websocket
 
 
         }else{
-            if($this->conectado){
+            if($this->conectado[$connection->id]){
                 //echo "发送数据到ssh服务器\n";
                 //发送数据到ssh服务器
-                fwrite($this->shell, $data);
+                fwrite($this->shell[$connection->id], $data);
             }
 
         }
@@ -189,26 +204,28 @@ class Websocket
 
     public function onClose(TcpConnection $connection)
     {
-        echo "onClose\n";
+        echo "onClose 关闭事件 $connection->id\n";
 
         //关闭资源
-        $this->close_resource();
+        $this->close_resource($connection);
 
 
         // 关闭websocket
         $connection->close();
 
-        // 关闭定时器
-        Timer::delAll();
+
     }
 
-    private function close_resource()
+    private function close_resource($connection)
     {
-        if(isset($this->shell) && is_resource($this->shell)){
-            fclose($this->shell);
+        // 关闭定时器
+        Timer::del($this->timer_id[$connection->id]);
 
-            $this->shell = null;
-            $this->conectado = false;
+        if(isset($this->shell[$connection->id]) && is_resource($this->shell[$connection->id])){
+            fclose($this->shell[$connection->id]);
+
+            $this->shell[$connection->id] = null;
+            $this->conectado[$connection->id] = false;
         }
     }
 

@@ -122,6 +122,8 @@
       <div id="terminal" style="width:100%; height:90vh;visibility:hidden"></div>
       <script>
 
+        //websocket连接信息，请根据实际情况修改
+        var ws_url = 'ws:192.168.56.12:2233';
 
 
 
@@ -148,7 +150,7 @@
           };
 
 
-
+          //打开窗口
           web_shell();
           return;
         }

@@ -1,8 +1,6 @@
-var ws_url = 'ws:192.168.56.12:2233';
 
-
+// 定义全局变量
 var docinfo = {};
-
 // 判断文件是否插入
 function is_file_existence(name, type) {
     var arry = type ? docinfo.loadScript : docinfo.loadLink;
