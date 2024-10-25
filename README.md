@@ -14,7 +14,13 @@ This is a project that uses Web to connect to SSH, written in PHP, with the fron
 ```
 请注意需要跟前端index.html中的websocket地址保持一致。
 
-webman目录中后端代码，上传到服务器。
+webman目录中后端代码，上传到服务器，并安装依赖。
+
+```
+cd webman
+composer install
+```
+
 
 PHP版本要求：7.2+
 
