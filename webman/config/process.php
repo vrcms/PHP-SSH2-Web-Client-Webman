@@ -39,7 +39,7 @@ return [
             ]
         ]
     ],
-        'Websocket'  => [
+    'Websocket'  => [
         'handler'  => process\Websocket::class,
         'listen'  => 'websocket://0.0.0.0:2233',
         'count'   => 1,
