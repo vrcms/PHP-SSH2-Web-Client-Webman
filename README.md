@@ -34,7 +34,9 @@ curl -Ss https://www.workerman.net/webman/fix-disable-functions | php
 
 
 后端启动调试运行:
-![](https://raw.githubusercontent.com/vrcms/PHP-SSH2-Web-Client-Webman/master/screen_snap01.png)
+
+![](https://raw.githubusercontent.com/vrcms/PHP-SSH2-Web-Client-Webman/master/sceen_snap01.png)
+
 ```
 cd webman
 php start.php start
