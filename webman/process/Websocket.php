@@ -69,10 +69,6 @@ class Websocket
     public function onMessage(TcpConnection $connection, $data)
     {
 
-        //先删除后添加定时器
-        if(isset($this->timer_id[$connection->id])){
-            Timer::del($this->timer_id[$connection->id]);
-        }
 
         // 开启定时器，定时发送数据-就是不断发送shell返回的数据
         $this->timer_id[$connection->id] = Timer::add(0.1, function() use($connection){
@@ -219,7 +215,7 @@ class Websocket
     private function close_resource($connection)
     {
         // 关闭定时器
-        Timer::del($this->timer_id[$connection->id]);
+        if(isset($this->timer_id[$connection->id]))Timer::del($this->timer_id[$connection->id]);
 
         if(isset($this->shell[$connection->id]) && is_resource($this->shell[$connection->id])){
             fclose($this->shell[$connection->id]);
