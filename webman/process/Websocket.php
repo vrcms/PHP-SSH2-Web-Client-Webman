@@ -38,7 +38,30 @@ class Websocket
 
     private $conectado = [];
 
-    private  $timer_id = [];
+
+    private $timer_ids = [];
+
+    public function onWorkerStart($worker){
+
+        //定时回收timer
+        Timer::add(1, function() use($worker){
+            foreach ($this->timer_ids as $connection_id => $timer_id) {
+                if(isset($this->shell[$connection_id]) && is_resource($this->shell[$connection_id]) && isset($this->conectado[$connection_id]) && $this->conectado[$connection_id]){
+                    //connection still working, continue;
+                }else{
+                    //close timer
+                    if(isset($this->timer_ids[$connection_id]) && $this->timer_ids[$connection_id]){
+                        if(Timer::del($timer_id)){
+                            unset($this->timer_ids[$connection_id]);
+                        }
+                    }
+                }
+            }
+
+        });
+
+
+    }
 
 
     public function onConnect(TcpConnection $connection){
@@ -49,18 +72,26 @@ class Websocket
     public function onWebSocketConnect(TcpConnection $connection, $http_buffer){
         //$http_buffer中有连接信息
         echo "客户端连接 onWebSocketConnect\n";
-        echo "connection->id :". $connection->id. "\n";
+        //echo "connection->id :". $connection->id. "\n";
 
         $this->shell[$connection->id] = null;
         $this->conectado[$connection->id] = false;
-        if(isset($this->timer_id[$connection->id])){
-            Timer::del($this->timer_id[$connection->id]);
-            $this->timer_id[$connection->id] = null;
-        }
+
         $this->connection[$connection->id] = null;
         $this->cols[$connection->id] = self::COLS;
         $this->rows[$connection->id] = self::ROWS;
 
+
+        $this->timer_ids[$connection->id] = Timer::add(0.1, function() use($connection){
+
+            if( isset($this->shell[$connection->id]) && is_resource($this->shell[$connection->id]) && isset($this->conectado[$connection->id]) && $this->conectado[$connection->id]){
+                //echo "循环发送数据到客户端\n";
+                while($line = fgets($this->shell[$connection->id])) {
+                    $connection->send(mb_convert_encoding($line, "UTF-8"));
+                }
+            }
+
+        });
 
 
 
@@ -69,22 +100,6 @@ class Websocket
     public function onMessage(TcpConnection $connection, $data)
     {
 
-
-        // 开启定时器，定时发送数据-就是不断发送shell返回的数据
-        $this->timer_id[$connection->id] = Timer::add(0.1, function() use($connection){
-
-            if(is_resource($this->shell[$connection->id]) && isset($this->conectado[$connection->id]) && $this->conectado[$connection->id]){
-                //echo "循环发送数据到客户端\n";
-                while($line = fgets($this->shell[$connection->id])) {
-                    $connection->send(mb_convert_encoding($line, "UTF-8"));
-                }
-            }
-
-
-        });
-
-
-        //echo $connection->id.".onMessage [$data] [$connection->id] \n";
 
 
         $arr_data = json_decode($data, true);
@@ -214,14 +229,11 @@ class Websocket
 
     private function close_resource($connection)
     {
-        // 关闭定时器
-        if(isset($this->timer_id[$connection->id]))Timer::del($this->timer_id[$connection->id]);
+
 
         if(isset($this->shell[$connection->id]) && is_resource($this->shell[$connection->id])){
             fclose($this->shell[$connection->id]);
-
-            $this->shell[$connection->id] = null;
-            $this->conectado[$connection->id] = false;
+            unset($this->shell[$connection->id], $this->conectado[$connection->id],$this->connection[$connection->id]);
         }
     }
 
