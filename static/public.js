@@ -123,6 +123,8 @@ var Term = {
         }
 
         Term.term.write(result);
+        Term.term.setOption('cursorBlink', true);//始终闪烁光标
+
         if (result == '\r\n登出\r\n' || result == '\r\n注销\r\n' || result == '注销\r\n' || result == '登出\r\n' || result == '\r\nlogout\r\n' || result == 'logout\r\n') {
             setTimeout(function () {
                 layer.close(Term.term_box);
