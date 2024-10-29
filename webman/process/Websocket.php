@@ -86,7 +86,7 @@ class Websocket
 
             if( isset($this->shell[$connection->id]) && is_resource($this->shell[$connection->id]) && isset($this->conectado[$connection->id]) && $this->conectado[$connection->id]){
                 //echo "循环发送数据到客户端\n";
-                while($line = fgets($this->shell[$connection->id])) {
+                while(($line = fgets($this->shell[$connection->id]))!== false) {
                     $connection->send(mb_convert_encoding($line, "UTF-8"));
                 }
             }
